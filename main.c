@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "utils/types.h"
+#include "utils/utils.h"
+
 #define DEFAULTPORT "10001"
 #define MSGSIZ (BUFSIZ * 0x400)
 
@@ -60,7 +63,7 @@ int main(int argc, char **argv) {
     char *buf = malloc(BUFSIZ);
     char *msg = malloc(MSGSIZ);
     // the actual server part
-    while (con_sockfd = accept(sockfd, (struct sockaddr *)&remote_addr, &addr_size)) {
+    while ((con_sockfd = accept(sockfd, (struct sockaddr *)&remote_addr, &addr_size))) {
         snprintf(
             zipzorp, 
             16, 
@@ -73,15 +76,26 @@ int main(int argc, char **argv) {
         printf("Connected to %s\n", zipzorp);
         while ((status = recv(con_sockfd, buf, BUFSIZ, 0)) > 0) {
             memset(msg, 0, MSGSIZ);
+            request_t *request = create_request(buf);
             snprintf(
                 msg, 
                 BUFSIZ, 
-                "HTTP/1.0 200 OK\n\n<html><head><title>TND</title></head><body><h1>h</h1><h2>Your request was:</h2><pre>%s</pre></body></html>",
-                buf
+                "HTTP/1.0 200 OK\n\n<html><head><title>TND</title></head><body><h1>h</h1><h2>Your request was:</h2><pre>%s</pre><h2>Parsed into request_t:</h2><pre>Method: %d\nPath: %s\nHeader count: %d\nHeader 0: %s: %s\nHeader 1: %s: %s\nBody length: %d\nBody: %s</pre></body></html>",
+                buf,
+                request->method,
+                request->path,
+                request->num_headers,
+                request->headers[0].key,
+                request->headers[0].value,
+                request->headers[1].key,
+                request->headers[1].value,
+                request->body_length,
+                request->body
                 );
-            printf("Bytes sent: %d\n", send(con_sockfd, msg, strlen(msg), 0));
+            printf("Bytes sent: %ld\n", send(con_sockfd, msg, strlen(msg), 0));
             close(con_sockfd);
             memset(buf, 0, BUFSIZ);
+            free_request(request);
         }
     }
 
