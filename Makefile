@@ -12,4 +12,4 @@ main.o: main.c
 utils/utils.o: utils/utils.c 
 
 clean:
-	rm -f *.o server
+	rm -f $(objects_server) server
